@@ -4,7 +4,9 @@ export ruleVariationalAROutVPPP,
        ruleVariationalARIn3PPPV,
        uvector
 
-order = 10
+import LinearAlgebra.Symmetric
+
+order, c, S = Nothing, Nothing, Nothing
 
 diagAR(dim) = Matrix{Float64}(I, dim, dim)
 
@@ -23,55 +25,83 @@ function uvector(dim, pos=1)
     return u
 end
 
-c = uvector(order)
-S = shift(order)
+function defineOrder(dim)
+    global order, c, S
+    order = dim
+    c = uvector(order)
+    S = shift(order)
+end
 
 function ruleVariationalAROutVPPP(marg_y :: Nothing,
                                   marg_x :: ProbabilityDistribution{Multivariate},
                                   marg_a :: ProbabilityDistribution{Multivariate},
-                                  marg_γ :: ProbabilityDistribution{Univariate})
+                                  marg_w :: ProbabilityDistribution{Univariate})
 
-    m = S*unsafeMean(marg_x)+c*unsafeMean(marg_x)'*unsafeMean(marg_a)
-    γ = unsafeMean(marg_γ)*diag()
-    Message(GaussianMeanPrecision, m=m, w=γ)
+    println("@ marg_y")
+    ma = unsafeMean(marg_a)
+    order == Nothing ? defineOrder(length(ma)) : order
+    m = S*unsafeMean(marg_x)+c*unsafeMean(marg_x)'*ma
+    W = Symmetric(unsafeMean(marg_w)*diagAR(order))
+    display(m)
+    # Noise injection
+    if W == zeros(order, order)
+        W = W + diagAR(order)
+    end
+    display(W)
+    Message(Multivariate, GaussianMeanPrecision, m=m, w=W)
 end
 
 function ruleVariationalARIn1PVPP(marg_y :: ProbabilityDistribution{Multivariate},
                                   marg_x :: Nothing,
                                   marg_a :: ProbabilityDistribution{Multivariate},
-                                  marg_γ :: ProbabilityDistribution{Univariate})
-
-    mA = S+c*unsafeMean(marg_a)'
+                                  marg_w :: ProbabilityDistribution{Univariate})
+    println("@ marg_x")
+    ma = unsafeMean(marg_a)
+    order == Nothing ? defineOrder(length(ma)) : order
+    mA = S+c*ma'
     m = (unsafeCov(marg_a)+mA'*mA)^-1*mA*unsafeMean(marg_y)
-    display(unsafeCov(marg_a))
-    display(mA'*mA)
-    println(marg_γ)
-    γ = (unsafeMean(marg_γ)*unsafeCov(marg_a)+mA'*mA)^-1
-    Message(GaussianMeanPrecision, m=m, w=γ)
+    W = Symmetric(unsafeMean(marg_w)*(unsafeCov(marg_a)+mA'*mA))
+    display(m)
+    # Noise injection
+    if W == zeros(order, order)
+        W = W + diagAR(order)
+    end
+    display(W)
+    Message(Multivariate, GaussianMeanPrecision, m=m, w=W)
 end
 
 function ruleVariationalARIn2PPVP(marg_y :: ProbabilityDistribution{Multivariate},
                                   marg_x :: ProbabilityDistribution{Multivariate},
                                   marg_a :: Nothing,
-                                  marg_γ :: ProbabilityDistribution{Univariate})
-
+                                  marg_w :: ProbabilityDistribution{Univariate})
+    println("@ marg_a")
+    my = unsafeMean(marg_y)
+    order == Nothing ? defineOrder(length(mA)) : order
     D = unsafeCov(marg_x)+unsafeMean(marg_x)*unsafeMean(marg_x)'
-    z = unsafeMean(marg_x)*c'unsafeMean(marg_y)-
+    z = unsafeMean(marg_x)*c'*my -
         unsafeMean(marg_x)*c'*S'*unsafeMean(marg_x)-
         unsafeCov(marg_x)*S*c
     m = D^-1*z
-    γ = (unsafeMean(marg_γ)*D)^-1
-    Message(GaussianMeanPrecision, m=m, w=γ)
+    W = Symmetric(unsafeMean(marg_w)*D)
+    display(m)
+    # Noise injection
+    if W == zeros(order, order)
+        W = W + diagAR(order)
+    end
+    display(W)
+    Message(Multivariate, GaussianMeanPrecision, m=m, w=W)
 end
 
 function ruleVariationalARIn3PPPV(marg_y :: ProbabilityDistribution{Multivariate},
                                   marg_x :: ProbabilityDistribution{Multivariate},
                                   marg_a :: ProbabilityDistribution{Multivariate},
-                                  marg_γ :: Nothing)
+                                  marg_w :: Nothing)
 
+    println("@ marg_w")
     mA = S+c*unsafeMean(marg_a)'
     D(x) = unsafeCov(x) + unsafeMean(x)*unsafeMean(x)'
     AxTy = (mA*unsafeMean(marg_x))'*unsafeMean(marg_y)
     B = tr(D(marg_y)) - tr(AxTy) - tr(AxTy') + tr(D(marg_x)*(S'*mA+unsafeMean(marg_a)*c'*S+D(marg_a)))
+    display(tr(B)/2)
     Message(Gamma, a=3/2, b=tr(B)/2)
 end

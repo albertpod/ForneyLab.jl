@@ -1,7 +1,7 @@
 @naiveVariationalRule(:node_type     => Autoregression,
                       :outbound_type => Message{GaussianMeanVariance},
                       :inbound_types => (Nothing, ProbabilityDistribution, ProbabilityDistribution, ProbabilityDistribution),
-                      :name          => VariationalAROutVPPPP)
+                      :name          => VariationalAROutVPPP)
 
 
 @naiveVariationalRule(:node_type     => Autoregression,
