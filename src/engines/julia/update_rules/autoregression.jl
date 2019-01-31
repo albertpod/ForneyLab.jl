@@ -43,10 +43,6 @@ function ruleVariationalAROutVPPP(marg_y :: Nothing,
     m = S*unsafeMean(marg_x)+c*unsafeMean(marg_x)'*ma
     W = Symmetric(unsafeMean(marg_w)*diagAR(order))
     display(m)
-    # Noise injection
-    if W == zeros(order, order)
-        W = W + diagAR(order)
-    end
     display(W)
     Message(Multivariate, GaussianMeanPrecision, m=m, w=W)
 end
@@ -62,10 +58,6 @@ function ruleVariationalARIn1PVPP(marg_y :: ProbabilityDistribution{Multivariate
     m = (unsafeCov(marg_a)+mA'*mA)^-1*mA*unsafeMean(marg_y)
     W = Symmetric(unsafeMean(marg_w)*(unsafeCov(marg_a)+mA'*mA))
     display(m)
-    # Noise injection
-    if W == zeros(order, order)
-        W = W + diagAR(order)
-    end
     display(W)
     Message(Multivariate, GaussianMeanPrecision, m=m, w=W)
 end
@@ -84,10 +76,6 @@ function ruleVariationalARIn2PPVP(marg_y :: ProbabilityDistribution{Multivariate
     m = D^-1*z
     W = Symmetric(unsafeMean(marg_w)*D)
     display(m)
-    # Noise injection
-    if W == zeros(order, order)
-        W = W + diagAR(order)
-    end
     display(W)
     Message(Multivariate, GaussianMeanPrecision, m=m, w=W)
 end
