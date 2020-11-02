@@ -63,6 +63,13 @@ function inferUpdateRule!(entry::ScheduleEntry,
             push!(applicable_rules, rule)
         end
     end
+    outbounds = collect(keys(inferred_outbound_types))
+    for i in 1:length(outbounds)
+        if occursin(string(:gaussiancontrolledvariance_), string(outbounds[i].node.id))
+            filter!(e -> e≠SPEqualityFnG, applicable_rules)
+            break
+        end
+    end
 
     # Select and set applicable rule
     if isempty(applicable_rules)
