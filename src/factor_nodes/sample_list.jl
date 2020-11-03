@@ -1,4 +1,5 @@
 export SampleList
+using SparseArrays
 
 mutable struct SampleList <: SoftFactor
     id::Symbol
@@ -151,6 +152,23 @@ isProper(dist::ProbabilityDistribution{V, SampleList}) where V<:VariateType = ab
     # TODO: no entropy is computed here; include computation?
     z.params[:w] = weights
     z.params[:s] = samples
+
+    m = unsafeMean(z)
+
+
+    # Σ = zeros(length(unsafeMean(z)))
+    if typeof(samples) == Array{SparseVector{Float64,Int64},1}
+        # sum(dist.params[:w].*(samples .- unsafeMean(dist)).^2)
+        p = ProbabilityDistribution(Univariate, Categorical, p=m)
+        z.params[:entropy] = differentialEntropy(p)
+    end
+    # (n_samples/(n_samples - 1))*sum(dist.params[:w].*(samples .- unsafeMean(dist)).^2)
+    # println(Σ)
+    # W = cholinv(Σ)
+    # d = length(m)
+    # t = [(s_i - m)'*W*(s_i - m) for s_i in samples]
+    # z.params[:entropy] = 0.5*d*log(2*pi) - 0.5*log(det(W)) + 0.5*sum(weights.*t)
+
 
     return z
 end
